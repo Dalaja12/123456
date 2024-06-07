@@ -1,4 +1,3 @@
-
 // Abre el modal de chat
 document.getElementById('chat-btn').onclick = function() {
     document.getElementById('chat-modal').classList.add('show');
@@ -18,28 +17,36 @@ const firebaseConfig = {
     messagingSenderId: "679964288319",
     appId: "1:679964288319:web:e33df3d48d5cce0ee1df8a",
     measurementId: "G-24SRJMJYKZ"
-  };
+};
 
 // Inicializa Firebase
 firebase.initializeApp(firebaseConfig);
 
-// Referencia al chat en la base de datos
-var chatRef = firebase.database().ref('chat');
+// Referencia a la colección de mensajes en Firestore
+var chatRef = firebase.firestore().collection('chat');
 
 // Enviar un mensaje
 function sendMessage() {
     var message = document.getElementById('chat-input').value;
-    chatRef.push().set({
-        "message": message
-    });
-    document.getElementById('chat-input').value = '';
+    if (message.trim() !== "") {
+        chatRef.add({
+            "message": message,
+            "timestamp": firebase.firestore.FieldValue.serverTimestamp()
+        });
+        document.getElementById('chat-input').value = '';
+    }
 }
 
 // Mostrar mensajes en tiempo real
-chatRef.on('child_added', function(snapshot) {
-    var message = snapshot.val().message;
-    var messageElement = document.createElement('div');
-    messageElement.textContent = message;
-    document.getElementById('chat-messages').appendChild(messageElement);
+chatRef.orderBy('timestamp').onSnapshot(function(snapshot) {
+    snapshot.docChanges().forEach(function(change) {
+        if (change.type === 'added') {
+            var message = change.doc.data().message;
+            var messageElement = document.createElement('div');
+            messageElement.textContent = message;
+            document.getElementById('chat-messages').appendChild(messageElement);
+        }
+    });
 });
+
 
